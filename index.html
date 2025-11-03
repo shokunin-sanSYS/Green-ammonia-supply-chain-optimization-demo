@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>グリーンNH₃供給・バンカリング最適化システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+            overflow-x: hidden;
+        }
+
+        /* タイトルバナー */
+        #title-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #ffffff 0%, #e8f4f8 50%, #ffffff 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            animation: fadeOut 0.8s ease-in-out 2.5s forwards;
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                visibility: hidden;
+            }
+        }
+
+        .banner-title {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #00a896;
+            text-align: center;
+            margin-bottom: 1rem;
+            animation: slideIn 0.8s ease-out;
+        }
+
+        .banner-subtitle {
+            font-size: 1.5rem;
+            color: #3498db;
+            text-align: center;
+            animation: slideIn 0.8s ease-out 0.3s backwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* メインコンテンツ */
+        #main-content {
+            opacity: 0;
+            animation: contentFadeIn 0.5s ease-in 2.8s forwards;
+        }
+
+        @keyframes contentFadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafb 100%);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid #00a896;
+            box-shadow: 0 2px 10px rgba(0, 168, 150, 0.1);
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00a896;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-tab {
+            padding: 0.6rem 1.5rem;
+            background: transparent;
+            border: 1px solid #d0dce5;
+            color: #5a6c7d;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+            border-radius: 4px;
+        }
+
+        .nav-tab:hover {
+            background: rgba(0, 168, 150, 0.1);
+            border-color: #00a896;
+            color: #00a896;
+        }
+
+        .nav-tab.active {
+            background: rgba(0, 168, 150, 0.15);
+            border-color: #00a896;
+            color: #00a896;
+            font-weight: 600;
+        }
+
+        .system-status {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+            color: #5a6c7d;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00a896;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* メインコンテナ */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* ダッシュボードグリッド */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: #ffffff;
+            border: 1px solid #e0e6ed;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s;
+        }
+
+        .metric-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: #7d8fa3;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #00a896;
+            margin-bottom: 0.3rem;
+        }
+
+        .metric-change {
+            font-size: 0.85rem;
+            color: #3498db;
+        }
+
+        .metric-change.positive {
+            color: #00a896;
+        }
+
+        .metric-change.negative {
+            color: #e74c3c;
+        }
+
+        /* チャートコンテナ */
+        .chart-container {
+            background: #ffffff;
+            border: 1px solid #e0e6ed;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-btn {
+            padding: 0.4rem 1rem;
+            background: rgba(0, 168, 150, 0.1);
+            border: 1px solid #d0dce5;
+            color: #5a6c7d;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+            border-radius: 4px;
+        }
+
+        .chart-btn:hover {
+            background: rgba(0, 168, 150, 0.2);
+            border-color: #00a896;
+            color: #00a896;
+        }
+
+        /* アラートセクション */
+        .alerts-section {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .alert-card {
+            background: #fff5f5;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 1.2rem;
+            box-shadow: 0 2px 8px rgba(252, 165, 165, 0.15);
+            animation: alertBlink 2s infinite;
+        }
+
+        @keyframes alertBlink {
+            0%, 100% { border-color: #fca5a5; box-shadow: 0 2px 8px rgba(252, 165, 165, 0.15); }
+            50% { border-color: #ef4444; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+        }
+
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+
+        .alert-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .alert-time {
+            font-size: 0.8rem;
+            color: #9ca3af;
+        }
+
+        .alert-content {
+            font-size: 0.9rem;
+            color: #374151;
+            line-height: 1.5;
+        }
+
+        /* テーブル */
+        .data-table {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid #e0e6ed;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: rgba(0, 168, 150, 0.08);
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #00a896;
+            border-bottom: 2px solid #e0e6ed;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f3f5;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+
+        .data-table tr:hover {
+            background: rgba(0, 168, 150, 0.03);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-optimal {
+            background: rgba(0, 168, 150, 0.15);
+            color: #00a896;
+            border: 1px solid #00a896;
+        }
+
+        .status-warning {
+            background: rgba(251, 191, 36, 0.15);
+            color: #f59e0b;
+            border: 1px solid #fbbf24;
+        }
+
+        .status-critical {
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+            border: 1px solid #ef4444;
+        }
+
+        /* グラフキャンバス */
+        .chart-canvas {
+            width: 100%;
+            height: 300px;
+            position: relative;
+        }
+
+        /* レポート生成ボタン */
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .btn-primary {
+            padding: 0.8rem 2rem;
+            background: linear-gradient(135deg, #00a896 0%, #008577 100%);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0, 168, 150, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 168, 150, 0.4);
+        }
+
+        .btn-secondary {
+            padding: 0.8rem 2rem;
+            background: #ffffff;
+            border: 1px solid #3498db;
+            color: #3498db;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 6px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(52, 152, 219, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* レポートモーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            border: 2px solid #00a896;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 168, 150, 0.2);
+        }
+
+        .modal-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #00a896;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+            color: #374151;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 168, 150, 0.15);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00a896 0%, #008577 100%);
+            width: 0%;
+            transition: width 0.3s;
+            animation: progress 3s ease-in-out forwards;
+        }
+
+        @keyframes progress {
+            to { width: 100%; }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+        }
+
+        /* 予測グラフエリア */
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        /* 情報カード */
+        .info-section {
+            background: #ffffff;
+            border: 1px solid #e0e6ed;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .info-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #00a896;
+            padding-bottom: 0.5rem;
+        }
+
+        .info-content {
+            color: #5a6c7d;
+            line-height: 1.6;
+        }
+
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .info-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f3f5;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .info-list li:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .info-value {
+            color: #00a896;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- タイトルバナー -->
+    <div id="title-banner">
+        <div class="banner-title">Green NH₃ Bunkering</div>
+        <div class="banner-subtitle">Supply & Optimization AI Platform</div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div id="main-content">
+        <!-- ヘッダー -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">NH₃バンカリングAI</div>
+                <nav class="nav-tabs">
+                    <button class="nav-tab active" data-page="dashboard">ダッシュボード</button>
+                    <button class="nav-tab" data-page="forecast">需要予測</button>
+                    <button class="nav-tab" data-page="inventory">在庫管理</button>
+                    <button class="nav-tab" data-page="schedule">スケジュール</button>
+                </nav>
+                <div class="system-status">
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span>システム稼働中</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- ダッシュボードページ -->
+            <div class="page active" id="dashboard">
+                <div class="dashboard-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">総供給量</div>
+                        <div class="metric-value"><span id="supply-volume">0</span> t</div>
+                        <div class="metric-change positive">前月比 +<span id="supply-change">0</span>%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">最適化率</div>
+                        <div class="metric-value"><span id="opt-rate">0</span>%</div>
+                        <div class="metric-change positive">効率 +<span id="opt-change">0</span>%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">コスト削減</div>
+                        <div class="metric-value">¥<span id="cost-save">0</span>M</div>
+                        <div class="metric-change positive">節約 +<span id="cost-change">0</span>%</div>
+                    </div>
+                </div>
+
+                <div class="alerts-section">
+                    <div class="alert-card">
+                        <div class="alert-header">
+                            <div class="alert-title">緊急：在庫低下警報</div>
+                            <div class="alert-time"><span id="alert-time-1">00:00</span></div>
+                        </div>
+                        <div class="alert-content">
+                            横浜港 NH₃在庫が閾値を下回っています：残量 <span id="alert-inventory">0</span>t
+                        </div>
+                    </div>
+                    <div class="alert-card">
+                        <div class="alert-header">
+                            <div class="alert-title">気象警報</div>
+                            <div class="alert-time"><span id="alert-time-2">00:00</span></div>
+                        </div>
+                        <div class="alert-content">
+                            台風接近中 - 今後<span id="alert-hours">0</span>時間の供給加速を推奨
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">リアルタイム供給・需要推移</div>
+                        <div class="chart-controls">
+                            <button class="chart-btn">24時間</button>
+                            <button class="chart-btn">7日間</button>
+                            <button class="chart-btn">30日間</button>
+                        </div>
+                    </div>
+                    <canvas id="supply-demand-chart" class="chart-canvas"></canvas>
+                </div>
+
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>港湾名</th>
+                                <th>現在庫</th>
+                                <th>需要予測</th>
+                                <th>ステータス</th>
+                                <th>次回供給</th>
+                            </tr>
+                        </thead>
+                        <tbody id="port-table">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-primary" onclick="generateReport()">最適化レポート生成</button>
+                    <button class="btn-secondary" onclick="exportData()">データエクスポート</button>
+                </div>
+            </div>
+
+            <!-- 需要予測ページ -->
+            <div class="page" id="forecast">
+                <div class="dashboard-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">予測精度</div>
+                        <div class="metric-value"><span id="forecast-accuracy">0</span>%</div>
+                        <div class="metric-change positive">AIモデル精度</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">30日間予測需要</div>
+                        <div class="metric-value"><span id="forecast-demand">0</span> t</div>
+                        <div class="metric-change">全港湾合計</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">気象影響係数</div>
+                        <div class="metric-value"><span id="weather-factor">0</span></div>
+                        <div class="metric-change negative">高リスク期間</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">AI需要予測 - 今後30日間</div>
+                    </div>
+                    <canvas id="forecast-chart" class="chart-canvas"></canvas>
+                </div>
+
+                <div class="forecast-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">気象影響分析</div>
+                        </div>
+                        <canvas id="weather-chart" class="chart-canvas"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <div class="chart-title">船舶スケジュール相関</div>
+                        </div>
+                        <canvas id="vessel-chart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-title">予測モデル情報</div>
+                    <ul class="info-list">
+                        <li><span class="info-label">使用アルゴリズム</span><span class="info-value">LSTM + Transformer</span></li>
+                        <li><span class="info-label">学習データ期間</span><span class="info-value">過去3年間</span></li>
+                        <li><span class="info-label">更新頻度</span><span class="info-value">1時間ごと</span></li>
+                        <li><span class="info-label">変動要因</span><span class="info-value">気象・船舶・季節</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 在庫管理ページ -->
+            <div class="page" id="inventory">
+                <div class="dashboard-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">総在庫量</div>
+                        <div class="metric-value"><span id="inv-total">0</span> t</div>
+                        <div class="metric-change">6港湾合計</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">平均回転率</div>
+                        <div class="metric-value"><span id="inv-turnover">0</span> 日</div>
+                        <div class="metric-change positive">最適化 -<span id="inv-improve">0</span>%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">保管効率</div>
+                        <div class="metric-value"><span id="inv-efficiency">0</span>%</div>
+                        <div class="metric-change positive">+<span id="inv-eff-change">0</span>%</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">港湾別在庫分布</div>
+                    </div>
+                    <canvas id="inventory-chart" class="chart-canvas"></canvas>
+                </div>
+
+                <div class="forecast-grid">
+                    <div class="info-section">
+                        <div class="info-title">在庫最適化指標</div>
+                        <ul class="info-list">
+                            <li><span class="info-label">安全在庫量</span><span class="info-value">3,500 t</span></li>
+                            <li><span class="info-label">最大保管容量</span><span class="info-value">35,000 t</span></li>
+                            <li><span class="info-label">現在稼働率</span><span class="info-value">70%</span></li>
+                            <li><span class="info-label">偏在指数</span><span class="info-value">0.23</span></li>
+                        </ul>
+                    </div>
+                    <div class="info-section">
+                        <div class="info-title">在庫管理アクション</div>
+                        <div class="info-content">
+                            <p style="margin-bottom:0.5rem;">• 大阪港: 緊急補充必要 (1,200t不足)</p>
+                            <p style="margin-bottom:0.5rem;">• 東京港: 過剰在庫の再配分推奨</p>
+                            <p style="margin-bottom:0.5rem;">• 神戸港: 最適レベル維持中</p>
+                            <p>• 横浜港: 48時間以内の補充を推奨</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>港湾名</th>
+                                <th>現在庫</th>
+                                <th>保管容量</th>
+                                <th>稼働率</th>
+                                <th>月間出荷</th>
+                                <th>回転日数</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-detail-table">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- スケジュールページ -->
+            <div class="page" id="schedule">
+                <div class="dashboard-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">今週の予定件数</div>
+                        <div class="metric-value"><span id="schedule-count">0</span> 件</div>
+                        <div class="metric-change">バンカリング予定</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">スケジュール効率</div>
+                        <div class="metric-value"><span id="schedule-efficiency">0</span>%</div>
+                        <div class="metric-change positive">時間枠最適化</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">待機時間削減</div>
+                        <div class="metric-value"><span id="schedule-reduction">0</span> 時間</div>
+                        <div class="metric-change positive">前月比削減</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div class="chart-title">最適化バンカリングスケジュール - 今後14日間</div>
+                    </div>
+                    <div class="data-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>日付</th>
+                                    <th>船舶名</th>
+                                    <th>港湾</th>
+                                    <th>供給量 (t)</th>
+                                    <th>時間帯</th>
+                                    <th>優先度</th>
+                                </tr>
+                            </thead>
+                            <tbody id="schedule-table">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="forecast-grid">
+                    <div class="info-section">
+                        <div class="info-title">スケジュール最適化要因</div>
+                        <ul class="info-list">
+                            <li><span class="info-label">気象条件</span><span class="info-value">考慮中</span></li>
+                            <li><span class="info-label">港湾混雑度</span><span class="info-value">リアルタイム</span></li>
+                            <li><span class="info-label">在庫状況</span><span class="info-value">連動</span></li>
+                            <li><span class="info-label">コスト最適化</span><span class="info-value">有効</span></li>
+                        </ul>
+                    </div>
+                    <div class="info-section">
+                        <div class="info-title">推奨アクション</div>
+                        <div class="info-content">
+                            <p style="margin-bottom:0.5rem;">• 11/5 08:00 横浜港: グリーンパイオニア優先対応</p>
+                            <p style="margin-bottom:0.5rem;">• 11/5 14:00 大阪港: エコボイジャー緊急対応</p>
+                            <p style="margin-bottom:0.5rem;">• 11/7 気象警報: 供給スケジュール前倒し</p>
+                            <p>• 週末: メンテナンス時間確保済み</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- レポート生成モーダル -->
+    <div class="modal" id="report-modal">
+        <div class="modal-content">
+            <div class="modal-header">最適化レポート生成中</div>
+            <div class="modal-body">
+                <p style="text-align: center; margin-bottom: 1rem;">
+                    AIでサプライチェーンデータを分析しています...
+                </p>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <p id="report-status" style="text-align: center; color: #00a896; margin-top: 1rem;">
+                    処理中...
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // データ更新アニメーション
+        function animateValue(id, start, end, duration, suffix = '') {
+            const obj = document.getElementById(id);
+            if (!obj) return;
+            const range = end - start;
+            const increment = range / (duration / 16);
+            let current = start;
+            
+            const timer = setInterval(() => {
+                current += increment;
+                if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+                    current = end;
+                    clearInterval(timer);
+                }
+                obj.textContent = Math.round(current * 10) / 10 + suffix;
+            }, 16);
+        }
+
+        // ページナビゲーション
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                
+                this.classList.add('active');
+                document.getElementById(this.dataset.page).classList.add('active');
+                
+                // ページ切り替え時にグラフを再描画
+                setTimeout(() => {
+                    if (this.dataset.page === 'forecast') {
+                        drawChart('forecast-chart');
+                        drawChart('weather-chart');
+                        drawChart('vessel-chart');
+                    } else if (this.dataset.page === 'inventory') {
+                        drawChart('inventory-chart');
+                    }
+                }, 100);
+            });
+        });
+
+        // リアルタイムデータ更新
+        function updateDashboard() {
+            animateValue('supply-volume', 0, 8547, 1500);
+            animateValue('supply-change', 0, 12.3, 1500);
+            animateValue('opt-rate', 0, 87.5, 1500);
+            animateValue('opt-change', 0, 15.2, 1500);
+            animateValue('cost-save', 0, 142.5, 1500);
+            animateValue('cost-change', 0, 23.8, 1500);
+            animateValue('alert-inventory', 0, 850, 1000);
+            animateValue('alert-hours', 0, 48, 1000);
+            
+            // 需要予測ページ
+            animateValue('forecast-accuracy', 0, 94.2, 1500);
+            animateValue('forecast-demand', 0, 32450, 1500);
+            animateValue('weather-factor', 0, 1.8, 1500);
+            
+            // 在庫ページ
+            animateValue('inv-total', 0, 24500, 1500);
+            animateValue('inv-turnover', 0, 8.5, 1500);
+            animateValue('inv-improve', 0, 18.3, 1500);
+            animateValue('inv-efficiency', 0, 92.4, 1500);
+            animateValue('inv-eff-change', 0, 7.2, 1500);
+            
+            // スケジュールページ
+            animateValue('schedule-count', 0, 24, 1500);
+            animateValue('schedule-efficiency', 0, 95.3, 1500);
+            animateValue('schedule-reduction', 0, 18.5, 1500);
+        }
+
+        // 時刻更新
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+            document.querySelectorAll('[id^="alert-time"]').forEach(el => {
+                el.textContent = timeStr;
+            });
+        }
+
+        // テーブルデータ生成
+        const ports = [
+            { name: '横浜', stock: 3200, demand: 4100, status: 'warning', next: '2時間30分', capacity: 6000, utilization: 53, monthly: 12000, turnover: 8 },
+            { name: '神戸', stock: 5800, demand: 4500, status: 'optimal', next: '8時間15分', capacity: 7000, utilization: 83, monthly: 13500, turnover: 13 },
+            { name: '大阪', stock: 2100, demand: 3800, status: 'critical', next: '1時間45分', capacity: 5500, utilization: 38, monthly: 11400, turnover: 5 },
+            { name: '名古屋', stock: 4500, demand: 4200, status: 'optimal', next: '6時間20分', capacity: 6500, utilization: 69, monthly: 12600, turnover: 11 },
+            { name: '東京', stock: 6200, demand: 5100, status: 'optimal', next: '12時間00分', capacity: 8000, utilization: 78, monthly: 15300, turnover: 12 },
+            { name: '川崎', stock: 2700, demand: 3300, status: 'warning', next: '3時間10分', capacity: 5000, utilization: 54, monthly: 9900, turnover: 8 }
+        ];
+
+        const statusLabels = {
+            'optimal': '最適',
+            'warning': '警告',
+            'critical': '緊急'
+        };
+
+        function populatePortTable() {
+            const tbody = document.getElementById('port-table');
+            tbody.innerHTML = ports.map(port => `
+                <tr>
+                    <td>${port.name}</td>
+                    <td>${port.stock.toLocaleString()} t</td>
+                    <td>${port.demand.toLocaleString()} t</td>
+                    <td><span class="status-badge status-${port.status}">${statusLabels[port.status]}</span></td>
+                    <td>${port.next}</td>
+                </tr>
+            `).join('');
+        }
+
+        function populateInventoryDetailTable() {
+            const tbody = document.getElementById('inventory-detail-table');
+            tbody.innerHTML = ports.map(port => `
+                <tr>
+                    <td>${port.name}</td>
+                    <td>${port.stock.toLocaleString()} t</td>
+                    <td>${port.capacity.toLocaleString()} t</td>
+                    <td>${port.utilization}%</td>
+                    <td>${port.monthly.toLocaleString()} t</td>
+                    <td>${port.turnover}日</td>
+                </tr>
+            `).join('');
+        }
+
+        // スケジュールテーブル
+        const schedules = [
+            { date: '2025-11-05', vessel: 'グリーンパイオニア', port: '横浜', volume: 1200, time: '08:00-10:30', priority: 'HIGH' },
+            { date: '2025-11-05', vessel: 'エコボイジャー', port: '大阪', volume: 900, time: '14:00-16:00', priority: 'CRITICAL' },
+            { date: '2025-11-06', vessel: 'マリンスター', port: '神戸', volume: 1500, time: '06:00-09:00', priority: 'MEDIUM' },
+            { date: '2025-11-06', vessel: 'オーシャンプライム', port: '名古屋', volume: 800, time: '11:00-13:00', priority: 'MEDIUM' },
+            { date: '2025-11-07', vessel: 'ブルーホライゾン', port: '東京', volume: 2000, time: '07:30-11:00', priority: 'HIGH' },
+            { date: '2025-11-07', vessel: 'パシフィックグローリー', port: '川崎', volume: 600, time: '15:00-17:00', priority: 'HIGH' },
+            { date: '2025-11-08', vessel: 'シーマスター', port: '横浜', volume: 1100, time: '09:00-11:30', priority: 'MEDIUM' },
+            { date: '2025-11-08', vessel: 'アクアジェム', port: '神戸', volume: 1350, time: '13:00-15:30', priority: 'MEDIUM' },
+            { date: '2025-11-09', vessel: 'オーシャンクエスト', port: '東京', volume: 1800, time: '08:00-11:00', priority: 'HIGH' },
+            { date: '2025-11-10', vessel: 'マリンエース', port: '名古屋', volume: 950, time: '10:00-12:00', priority: 'MEDIUM' }
+        ];
+
+        const priorityLabels = {
+            'CRITICAL': '緊急',
+            'HIGH': '高',
+            'MEDIUM': '中'
+        };
+
+        function populateScheduleTable() {
+            const tbody = document.getElementById('schedule-table');
+            tbody.innerHTML = schedules.map(s => `
+                <tr>
+                    <td>${s.date}</td>
+                    <td>${s.vessel}</td>
+                    <td>${s.port}</td>
+                    <td>${s.volume.toLocaleString()}</td>
+                    <td>${s.time}</td>
+                    <td><span class="status-badge status-${s.priority === 'CRITICAL' ? 'critical' : s.priority === 'HIGH' ? 'warning' : 'optimal'}">${priorityLabels[s.priority]}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // グラフ描画（改善版）
+        function drawChart(canvasId) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.log('Canvas not found:', canvasId);
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            const width = rect.width;
+            const height = rect.height;
+            const padding = 50;
+            const chartWidth = width - padding * 2;
+            const chartHeight = height - padding * 2;
+            const points = 50;
+            
+            ctx.clearRect(0, 0, width, height);
+            
+            // 背景
+            ctx.fillStyle = '#fafbfc';
+            ctx.fillRect(padding, padding, chartWidth, chartHeight);
+            
+            // グリッド描画
+            ctx.strokeStyle = '#e0e6ed';
+            ctx.lineWidth = 1;
+            
+            // 横線
+            for (let i = 0; i <= 10; i++) {
+                const y = padding + (chartHeight / 10) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+                
+                // Y軸ラベル
+                ctx.fillStyle = '#7d8fa3';
+                ctx.font = '11px sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(`${100 - i * 10}`, padding - 5, y + 4);
+            }
+            
+            // 縦線
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (chartWidth / 10) * i;
+                ctx.beginPath();
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, height - padding);
+                ctx.stroke();
+            }
+            
+            // データ生成（供給量）
+            const supplyData = [];
+            for (let i = 0; i < points; i++) {
+                const baseValue = 60 + Math.sin(i / 8) * 15;
+                const noise = Math.random() * 8 - 4;
+                supplyData.push(Math.max(30, Math.min(95, baseValue + noise)));
+            }
+            
+            // データ生成（需要量）
+            const demandData = [];
+            for (let i = 0; i < points; i++) {
+                const baseValue = 55 + Math.cos(i / 6) * 12;
+                const noise = Math.random() * 6 - 3;
+                demandData.push(Math.max(35, Math.min(90, baseValue + noise)));
+            }
+            
+            // 供給量エリア描画
+            const supplyGradient = ctx.createLinearGradient(0, padding, 0, height - padding);
+            supplyGradient.addColorStop(0, 'rgba(0, 168, 150, 0.25)');
+            supplyGradient.addColorStop(1, 'rgba(0, 168, 150, 0.05)');
+            
+            ctx.beginPath();
+            ctx.moveTo(padding, height - padding);
+            for (let i = 0; i < points; i++) {
+                const x = padding + (chartWidth / (points - 1)) * i;
+                const y = padding + chartHeight - (supplyData[i] / 100) * chartHeight;
+                if (i === 0) ctx.lineTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.lineTo(width - padding, height - padding);
+            ctx.closePath();
+            ctx.fillStyle = supplyGradient;
+            ctx.fill();
+            
+            // 供給量ライン描画
+            ctx.strokeStyle = '#00a896';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (let i = 0; i < points; i++) {
+                const x = padding + (chartWidth / (points - 1)) * i;
+                const y = padding + chartHeight - (supplyData[i] / 100) * chartHeight;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // 需要量エリア描画
+            const demandGradient = ctx.createLinearGradient(0, padding, 0, height - padding);
+            demandGradient.addColorStop(0, 'rgba(52, 152, 219, 0.2)');
+            demandGradient.addColorStop(1, 'rgba(52, 152, 219, 0.05)');
+            
+            ctx.beginPath();
+            ctx.moveTo(padding, height - padding);
+            for (let i = 0; i < points; i++) {
+                const x = padding + (chartWidth / (points - 1)) * i;
+                const y = padding + chartHeight - (demandData[i] / 100) * chartHeight;
+                if (i === 0) ctx.lineTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.lineTo(width - padding, height - padding);
+            ctx.closePath();
+            ctx.fillStyle = demandGradient;
+            ctx.fill();
+            
+            // 需要量ライン描画
+            ctx.strokeStyle = '#3498db';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (let i = 0; i < points; i++) {
+                const x = padding + (chartWidth / (points - 1)) * i;
+                const y = padding + chartHeight - (demandData[i] / 100) * chartHeight;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // 凡例
+            const legendY = padding - 20;
+            ctx.fillStyle = '#00a896';
+            ctx.fillRect(width - 180, legendY - 5, 20, 3);
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('供給量', width - 155, legendY);
+            
+            ctx.fillStyle = '#3498db';
+            ctx.fillRect(width - 80, legendY - 5, 20, 3);
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText('需要量', width - 55, legendY);
+            
+            console.log('Chart drawn successfully:', canvasId);
+        }
+
+        // レポート生成
+        function generateReport() {
+            const modal = document.getElementById('report-modal');
+            const status = document.getElementById('report-status');
+            modal.classList.add('active');
+            
+            const messages = [
+                '供給パターンを分析中...',
+                '需要予測を処理中...',
+                '在庫配分を最適化中...',
+                'コスト削減効果を計算中...',
+                'レポート完成！'
+            ];
+            
+            let index = 0;
+            const interval = setInterval(() => {
+                if (index < messages.length) {
+                    status.textContent = messages[index];
+                    index++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        status.textContent = 'ダウンロード準備完了 - レポートをoutputsに保存しました';
+                        createReportFile();
+                    }, 500);
+                }
+            }, 600);
+        }
+
+        function createReportFile() {
+            const timestamp = new Date().toLocaleString('ja-JP');
+            const reportContent = `グリーンNH₃バンカリング最適化レポート
+生成日時: ${timestamp}
+
+=== エグゼクティブサマリー ===
+総供給量: 8,547 t
+最適化率: 87.5%
+コスト削減: ¥142.5M
+効率改善: +15.2%
+
+=== 港湾ステータス ===
+${ports.map(p => `${p.name}: ${p.stock}t (ステータス: ${statusLabels[p.status]}, 稼働率: ${p.utilization}%)`).join('\n')}
+
+=== 在庫分析 ===
+総在庫量: 24,500 t
+平均回転率: 8.5日
+保管効率: 92.4%
+在庫偏在指数: 0.23
+
+=== 需要予測 ===
+予測精度: 94.2%
+30日間予測需要: 32,450 t
+気象影響係数: 1.8 (高リスク)
+主要変動要因: 気象条件、船舶スケジュール、季節性
+
+=== 推奨事項 ===
+1. 大阪港への供給を2時間以内に優先実施 (在庫: 2,100t → 目標: 3,500t)
+2. 気象対策: 今後48時間のスケジュールを前倒し (台風接近予報)
+3. 横浜-川崎間の配送ルートを最適化 (輸送コスト12%削減見込み)
+4. 高需要港湾の予知保全を実施 (東京港、神戸港)
+5. 在庫再配分: 東京港 → 大阪港へ1,200t移送推奨
+
+=== スケジュール最適化効果 ===
+今週の予定件数: 24件
+スケジュール効率: 95.3%
+待機時間削減: 18.5時間 (前月比)
+時間枠最適化による稼働率向上: +7.2%
+
+=== 次週の重点対応 ===
+11/5 08:00 横浜港: グリーンパイオニア (1,200t) - 優先対応
+11/5 14:00 大阪港: エコボイジャー (900t) - 緊急対応
+11/7 全港: 気象警報対応として供給スケジュール前倒し
+
+=== コスト分析 ===
+月間総コスト削減: ¥142.5M
+  - 在庫最適化: ¥58.2M
+  - スケジュール効率化: ¥42.8M
+  - 輸送ルート最適化: ¥23.1M
+  - 気象予測活用: ¥18.4M
+
+=== システム情報 ===
+AIモデル: LSTM + Transformer
+学習データ期間: 過去3年間
+更新頻度: 1時間ごと
+データソース: 港湾管理システム、気象庁API、船舶AIS
+
+---
+NH₃バンカリングAIプラットフォーム v2.0
+レポート生成システム
+`;
+
+            console.log('レポート生成:', reportContent);
+            
+            // テキストファイルとしてダウンロード
+            const blob = new Blob([reportContent], { type: 'text/plain;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            const filename = `NH3_optimization_report_${new Date().toISOString().slice(0,10)}.txt`;
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            URL.revokeObjectURL(url);
+            
+            showNotification('最適化レポートをダウンロードしました');
+        }
+
+        function closeModal() {
+            document.getElementById('report-modal').classList.remove('active');
+        }
+
+        function exportData() {
+            // CSVデータの生成
+            const timestamp = new Date().toLocaleString('ja-JP').replace(/[/:]/g, '-').replace(/\s/g, '_');
+            
+            // 港湾データCSV
+            let csvContent = '\uFEFF'; // UTF-8 BOM
+            csvContent += '港湾名,現在庫(t),需要予測(t),ステータス,次回供給,保管容量(t),稼働率(%),月間出荷(t),回転日数\n';
+            
+            ports.forEach(port => {
+                csvContent += `${port.name},${port.stock},${port.demand},${statusLabels[port.status]},${port.next},${port.capacity},${port.utilization},${port.monthly},${port.turnover}\n`;
+            });
+            
+            csvContent += '\n\n';
+            csvContent += 'スケジュール情報\n';
+            csvContent += '日付,船舶名,港湾,供給量(t),時間帯,優先度\n';
+            
+            schedules.forEach(s => {
+                csvContent += `${s.date},${s.vessel},${s.port},${s.volume},${s.time},${priorityLabels[s.priority]}\n`;
+            });
+            
+            csvContent += '\n\n';
+            csvContent += 'サマリー情報\n';
+            csvContent += `生成日時,${timestamp}\n`;
+            csvContent += `総供給量,${document.getElementById('supply-volume').textContent}\n`;
+            csvContent += `最適化率,${document.getElementById('opt-rate').textContent}\n`;
+            csvContent += `コスト削減,${document.getElementById('cost-save').textContent}\n`;
+            csvContent += `総在庫量,${document.getElementById('inv-total').textContent}\n`;
+            csvContent += `予測精度,${document.getElementById('forecast-accuracy').textContent}\n`;
+            
+            // Blobを作成
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            
+            // ダウンロードリンクを作成
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `NH3_bunkering_data_${timestamp}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // メモリ解放
+            URL.revokeObjectURL(url);
+            
+            // 成功メッセージ
+            showNotification('CSVファイルをダウンロードしました');
+        }
+        
+        // 通知表示関数
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #00a896;
+                color: white;
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 168, 150, 0.3);
+                z-index: 10001;
+                font-weight: 600;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        // 初期化
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                updateDashboard();
+                updateTime();
+                populatePortTable();
+                populateInventoryDetailTable();
+                populateScheduleTable();
+                
+                // すべてのグラフを描画
+                drawChart('supply-demand-chart');
+                drawChart('forecast-chart');
+                drawChart('weather-chart');
+                drawChart('vessel-chart');
+                drawChart('inventory-chart');
+                
+                setInterval(updateTime, 60000);
+                
+                // グラフのリアルタイム更新
+                setInterval(() => {
+                    drawChart('supply-demand-chart');
+                }, 5000);
+            }, 3000);
+        });
+        
+        // ウィンドウリサイズ時にグラフを再描画
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                drawChart('supply-demand-chart');
+                drawChart('forecast-chart');
+                drawChart('weather-chart');
+                drawChart('vessel-chart');
+                drawChart('inventory-chart');
+            }, 250);
+        });
+    </script>
+</body>
+</html>
